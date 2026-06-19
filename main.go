@@ -84,7 +84,8 @@ func runConfigWizard() error {
 	fmt.Println("  1) Gemini")
 	fmt.Println("  2) Azure OpenAI")
 	fmt.Println("  3) OpenAI")
-	fmt.Print(prompt("Enter choice (1/2/3): "))
+	fmt.Println("  4) Anthropic")
+	fmt.Print(prompt("Enter choice (1/2/3/4): "))
 	var choice string
 	fmt.Scanln(&choice)
 	choice = strings.TrimSpace(choice)
@@ -95,6 +96,8 @@ func runConfigWizard() error {
 		provider = "azure"
 	case "3":
 		provider = "openai"
+	case "4":
+		provider = "anthropic"
 	default:
 		provider = "gemini"
 	}
@@ -104,11 +107,15 @@ func runConfigWizard() error {
 		fmt.Print(prompt("Enter your Gemini API Key: "))
 		var key string
 		fmt.Scanln(&key)
+		fmt.Print(prompt("Enter Gemini Model (optional, default gemini-flash-latest): "))
+		var model string
+		fmt.Scanln(&model)
 		key = strings.TrimSpace(key)
 		if key == "" {
 			return fmt.Errorf("API key cannot be empty")
 		}
 		cfg.GeminiAPIKey = key
+		cfg.GeminiModel = strings.TrimSpace(model)
 	case "azure":
 		fmt.Print(prompt("Enter Azure OpenAI Endpoint: "))
 		var endpoint string
@@ -136,6 +143,19 @@ func runConfigWizard() error {
 		}
 		cfg.OpenAIAPIKey = key
 		cfg.OpenAIModel = strings.TrimSpace(model)
+	case "anthropic":
+		fmt.Print(prompt("Enter Anthropic API Key: "))
+		var key string
+		fmt.Scanln(&key)
+		fmt.Print(prompt("Enter Anthropic Model (optional, default claude-opus-4-8): "))
+		var model string
+		fmt.Scanln(&model)
+		key = strings.TrimSpace(key)
+		if key == "" {
+			return fmt.Errorf("API key cannot be empty")
+		}
+		cfg.AnthropicAPIKey = key
+		cfg.AnthropicModel = strings.TrimSpace(model)
 	}
 
 	cfg.Provider = provider
@@ -144,6 +164,7 @@ func runConfigWizard() error {
 
 func main() {
 	configureWizard := flag.Bool("config", false, "Configure provider and credentials")
+	clearConfig := flag.Bool("clear-config", false, "Clear saved configuration and credentials")
 	showHelp := flag.Bool("help", false, "Show help")
 	flag.BoolVar(showHelp, "h", false, "Show help")
 	flag.Parse()
@@ -152,7 +173,17 @@ func main() {
 		fmt.Println(label("Usage"))
 		fmt.Println("  tt <request>          Generate a command from natural language")
 		fmt.Println("  tt --config           Configure provider and credentials")
+		fmt.Println("  tt --clear-config     Clear saved configuration and credentials")
 		fmt.Println("  tt --help             Show help")
+		os.Exit(0)
+	}
+
+	if *clearConfig {
+		if err := config.Clear(); err != nil {
+			fmt.Fprintf(os.Stderr, "Error clearing config: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Println(colorGreen + "Configuration cleared." + colorReset)
 		os.Exit(0)
 	}
 
@@ -170,6 +201,7 @@ func main() {
 		fmt.Println(label("Usage"))
 		fmt.Println("  tt <request>          Generate a command from natural language")
 		fmt.Println("  tt --config           Configure provider and credentials")
+		fmt.Println("  tt --clear-config     Clear saved configuration and credentials")
 		fmt.Println("  tt --help             Show help")
 		os.Exit(1)
 	}
@@ -183,7 +215,7 @@ func main() {
 	}
 
 	provider := strings.ToLower(strings.TrimSpace(cfg.Provider))
-	if provider == "" && cfg.GeminiAPIKey == "" && cfg.AzureOpenAIAPIKey == "" && cfg.OpenAIAPIKey == "" {
+	if provider == "" && cfg.GeminiAPIKey == "" && cfg.AzureOpenAIAPIKey == "" && cfg.OpenAIAPIKey == "" && cfg.AnthropicAPIKey == "" {
 		fmt.Println(label("First-time setup"))
 		if err := runConfigWizard(); err != nil {
 			fmt.Fprintf(os.Stderr, "Error saving config: %v\n", err)
@@ -204,6 +236,8 @@ func main() {
 			provider = "azure"
 		case cfg.OpenAIAPIKey != "":
 			provider = "openai"
+		case cfg.AnthropicAPIKey != "":
+			provider = "anthropic"
 		default:
 			provider = "gemini"
 		}
@@ -265,13 +299,38 @@ func main() {
 			fmt.Println("API Key saved successfully.")
 			cfg.GeminiAPIKey = key
 		}
-		client, err = llm.NewClient(cfg.GeminiAPIKey)
+		client, err = llm.NewClient(cfg.GeminiAPIKey, cfg.GeminiModel)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+	case "anthropic":
+		if cfg.AnthropicAPIKey == "" {
+			fmt.Println(colorYellow + "Anthropic API key not found." + colorReset)
+			fmt.Print(prompt("Please enter your Anthropic API Key: "))
+			var key string
+			fmt.Scanln(&key)
+			key = strings.TrimSpace(key)
+			if key == "" {
+				fmt.Fprintln(os.Stderr, "Error: API key cannot be empty.")
+				os.Exit(1)
+			}
+			cfg.AnthropicAPIKey = key
+			if err := config.SaveConfig(cfg); err != nil {
+				fmt.Fprintf(os.Stderr, "Error saving config: %v\n", err)
+				os.Exit(1)
+			}
+		}
+		client, err = llm.NewAnthropicClient(
+			cfg.AnthropicAPIKey,
+			cfg.AnthropicModel,
+		)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
 		}
 	default:
-		fmt.Fprintf(os.Stderr, "Error: unknown LLM provider %q (use \"gemini\", \"azure\", or \"openai\")\n", provider)
+		fmt.Fprintf(os.Stderr, "Error: unknown LLM provider %q (use \"gemini\", \"azure\", \"openai\", or \"anthropic\")\n", provider)
 		os.Exit(1)
 	}
 

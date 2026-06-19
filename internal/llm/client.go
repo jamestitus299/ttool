@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"google.golang.org/genai"
 )
@@ -12,8 +13,11 @@ type Client interface {
 	GetCommand(request, osSystem, shell string) (CommandResponse, error)
 }
 
+const defaultGeminiModel = "gemini-flash-latest"
+
 type GeminiClient struct {
 	client *genai.Client
+	model  string
 }
 
 type CommandResponse struct {
@@ -36,9 +40,13 @@ func buildGeminiPrompt(request, osSystem, shell string) string {
 %s`, buildSystemPrompt(), buildUserPrompt(request, osSystem, shell))
 }
 
-func NewClient(apiKey string) (*GeminiClient, error) {
+func NewClient(apiKey, model string) (*GeminiClient, error) {
 	if apiKey == "" {
 		return nil, fmt.Errorf("Gemini API key is empty")
+	}
+	model = strings.TrimSpace(model)
+	if model == "" {
+		model = defaultGeminiModel
 	}
 
 	ctx := context.Background()
@@ -50,7 +58,7 @@ func NewClient(apiKey string) (*GeminiClient, error) {
 		return nil, fmt.Errorf("failed to create Gemini client: %v", err)
 	}
 
-	return &GeminiClient{client: client}, nil
+	return &GeminiClient{client: client, model: model}, nil
 }
 
 func (c *GeminiClient) GetCommand(request, osSystem, shell string) (CommandResponse, error) {
@@ -59,7 +67,7 @@ func (c *GeminiClient) GetCommand(request, osSystem, shell string) (CommandRespo
 	ctx := context.Background()
 	result, err := c.client.Models.GenerateContent(
 		ctx,
-		"gemini-flash-latest",
+		c.model,
 		genai.Text(prompt),
 		&genai.GenerateContentConfig{
 			Temperature:      genai.Ptr(float32(0.0)),

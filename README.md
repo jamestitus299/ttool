@@ -1,6 +1,6 @@
 # tt (Terminal Tool)
 
-`tt` is a CLI tool that converts natural language requests into terminal commands using Gemini, OpenAI, or Azure OpenAI.
+`tt` is a CLI tool that converts natural language requests into terminal commands using LLM.
 
 ### Build From Source
 
@@ -15,6 +15,7 @@
 3. Set your provider credentials:
    ```bash
    export GEMINI_API_KEY='your-api-key-here'
+   export GEMINI_MODEL='gemini-flash-latest'  # optional; defaults to gemini-flash-latest
    ```
    Or use OpenAI:
    ```bash
@@ -29,6 +30,16 @@
    export AZURE_OPENAI_API_KEY='your-api-key-here'
    export AZURE_OPENAI_DEPLOYMENT_NAME='your-deployment-name'
    ```
+   Or use Anthropic:
+   ```bash
+   export LLM_PROVIDER='anthropic'
+   export ANTHROPIC_API_KEY='your-api-key-here'
+   export ANTHROPIC_MODEL='claude-opus-4-8'  # optional; defaults to claude-opus-4-8
+   ```
+
+Credentials can also be saved interactively with `tt --config`. They are stored
+in `~/.config/ttool/config.json` (mode `0600`); environment variables override the
+saved file. Run `tt --clear-config` to delete the saved configuration.
 
 ## Usage
 
@@ -52,5 +63,6 @@ tt --help
 Usage
   tt <request>          Generate a command from natural language
   tt --config           Configure provider and credentials
+  tt --clear-config     Clear saved configuration and credentials
   tt --help             Show help
 ```

@@ -10,9 +10,12 @@ import (
 
 type Config struct {
 	GeminiAPIKey              string `json:"gemini_api_key"`
+	GeminiModel               string `json:"gemini_model"`
 	Provider                  string `json:"provider"`
 	OpenAIAPIKey              string `json:"openai_api_key"`
 	OpenAIModel               string `json:"openai_model"`
+	AnthropicAPIKey           string `json:"anthropic_api_key"`
+	AnthropicModel            string `json:"anthropic_model"`
 	AzureOpenAIEndpoint       string `json:"azure_openai_endpoint"`
 	AzureOpenAIAPIKey         string `json:"azure_openai_api_key"`
 	AzureOpenAIDeploymentName string `json:"azure_openai_deployment_name"`
@@ -23,7 +26,7 @@ func GetConfigPath() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(home, ".ttool.json"), nil
+	return filepath.Join(home, ".config", "ttool", "config.json"), nil
 }
 
 func Load() (*Config, error) {
@@ -51,6 +54,9 @@ func Load() (*Config, error) {
 	if key := os.Getenv("GEMINI_API_KEY"); key != "" {
 		cfg.GeminiAPIKey = key
 	}
+	if model := os.Getenv("GEMINI_MODEL"); model != "" {
+		cfg.GeminiModel = model
+	}
 	if provider := os.Getenv("LLM_PROVIDER"); provider != "" {
 		cfg.Provider = strings.ToLower(strings.TrimSpace(provider))
 	}
@@ -59,6 +65,12 @@ func Load() (*Config, error) {
 	}
 	if model := os.Getenv("OPENAI_MODEL"); model != "" {
 		cfg.OpenAIModel = model
+	}
+	if key := os.Getenv("ANTHROPIC_API_KEY"); key != "" {
+		cfg.AnthropicAPIKey = key
+	}
+	if model := os.Getenv("ANTHROPIC_MODEL"); model != "" {
+		cfg.AnthropicModel = model
 	}
 	if endpoint := os.Getenv("AZURE_OPENAI_ENDPOINT"); endpoint != "" {
 		cfg.AzureOpenAIEndpoint = endpoint
@@ -90,6 +102,10 @@ func Save(key string) error {
 		return err
 	}
 
+	if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
+		return err
+	}
+
 	return ioutil.WriteFile(path, data, 0600)
 }
 
@@ -104,5 +120,24 @@ func SaveConfig(cfg *Config) error {
 		return err
 	}
 
+	if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
+		return err
+	}
+
 	return ioutil.WriteFile(path, data, 0600)
+}
+
+// Clear removes the saved config file. It is not an error if the file does
+// not exist.
+func Clear() error {
+	path, err := GetConfigPath()
+	if err != nil {
+		return err
+	}
+
+	if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+		return err
+	}
+
+	return nil
 }
