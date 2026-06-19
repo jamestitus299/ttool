@@ -4,42 +4,25 @@
 
 ### Build From Source
 
-1. Clone the repository and build the binary:
+1. Clone the repository, then run the install script. It builds the binary and
+   adds a `tt` alias to the right shell startup file for your shell
+   (`~/.zshrc`, `~/.bashrc`/`~/.bash_profile`, or fish config):
    ```bash
-   go build -o tt main.go
+   ./scripts/install.sh
    ```
-2. Move the binary to your PATH (e.g., `/usr/local/bin`) or create an alias:
+   On Windows (PowerShell), run instead:
+   ```powershell
+   .\scripts\install.ps1
+   ```
+   Restart your shell (or `source` the startup file) for the alias to take effect.
+2. Configure your provider and credentials:
    ```bash
-   alias tt='/path/to/tt'
+   tt --config
    ```
-3. Set your provider credentials:
-   ```bash
-   export GEMINI_API_KEY='your-api-key-here'
-   export GEMINI_MODEL='gemini-flash-latest'  # optional; defaults to gemini-flash-latest
-   ```
-   Or use OpenAI:
-   ```bash
-   export LLM_PROVIDER='openai'
-   export OPENAI_API_KEY='your-api-key-here'
-   export OPENAI_MODEL='gpt-4o-mini'
-   ```
-   Or use Azure OpenAI:
-   ```bash
-   export LLM_PROVIDER='azure'
-   export AZURE_OPENAI_ENDPOINT='https://your-resource.openai.azure.com/openai/v1/'
-   export AZURE_OPENAI_API_KEY='your-api-key-here'
-   export AZURE_OPENAI_DEPLOYMENT_NAME='your-deployment-name'
-   ```
-   Or use Anthropic:
-   ```bash
-   export LLM_PROVIDER='anthropic'
-   export ANTHROPIC_API_KEY='your-api-key-here'
-   export ANTHROPIC_MODEL='claude-opus-4-8'  # optional; defaults to claude-opus-4-8
-   ```
-
-Credentials can also be saved interactively with `tt --config`. They are stored
-in `~/.config/ttool/config.json` (mode `0600`); environment variables override the
-saved file. Run `tt --clear-config` to delete the saved configuration.
+   This walks you through selecting a provider (Gemini, OpenAI, Azure OpenAI, or
+   Anthropic) and entering your API key and an optional model. Credentials are
+   stored in `~/.config/ttool/config.json` (mode `0600`). Run `tt --clear-config`
+   to delete the saved configuration.
 
 ## Usage
 

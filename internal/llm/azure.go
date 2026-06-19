@@ -30,9 +30,12 @@ func NewAzureOpenAIClient(endpoint, apiKey, deployment string) (*AzureOpenAIClie
 		return nil, fmt.Errorf("Azure OpenAI deployment name is empty")
 	}
 
-	if !strings.HasSuffix(endpoint, "/") {
-		endpoint += "/"
-	}
+	// The SDK appends "responses" to the base URL, so the endpoint must point at
+	// ".../openai/v1/". Strip a trailing "responses" segment users often copy
+	// from the Azure portal, then normalize to a single trailing slash.
+	endpoint = strings.TrimRight(endpoint, "/")
+	endpoint = strings.TrimSuffix(endpoint, "/responses")
+	endpoint += "/"
 
 	return &AzureOpenAIClient{
 		client: openai.NewClient(

@@ -117,7 +117,7 @@ func runConfigWizard() error {
 		cfg.GeminiAPIKey = key
 		cfg.GeminiModel = strings.TrimSpace(model)
 	case "azure":
-		fmt.Print(prompt("Enter Azure OpenAI Endpoint: "))
+		fmt.Print(prompt("Enter Azure OpenAI Endpoint (e.g. https://your-resource.services.ai.azure.com/openai/v1/): "))
 		var endpoint string
 		fmt.Scanln(&endpoint)
 		fmt.Print(prompt("Enter Azure OpenAI API Key: "))
